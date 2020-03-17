@@ -13,9 +13,16 @@ int led2 = 6;
 int endstopper = 7;
 int pressure = 8;
 
+int pot1 = A0;
+int pot2 = A1;
+int pot3 = A2;
 
-// PROTOTYPE ADJUSTS //
-const int stepsPerRevolution = 200;  // change this to fit the number of steps per revolution
+int valuepot1 = 0; // Volume
+int valuepot2 = 0; // Cicles
+int valuepot3 = 0; // Speed
+
+           // PROTOTYPE ADJUSTS //
+           const int stepsPerRevolution = 200;  // change this to fit the number of steps per revolution
 
 // INITIAL VARIABLES  //
 int volume = 500; //Initial air volume per cicle
@@ -52,6 +59,17 @@ void setup() {
 }
 
 void loop() {
+  // Read the value of 3 parameters
+  valuepot1 = analogRead(pot1);
+  valuepot2 = analogRead(pot2);
+  valuepot3 = analogRead(pot3);
+
+Serial.print("Value 1: ");
+Serial.print(valuepot1);
+Serial.print(" |  Value 2: ");
+Serial.print(valuepot2);
+Serial.print(" |  Value 3: ");
+Serial.println(valuepot3);
 
   currentMillis = millis();   // capture the latest value of millis()
   // Define the variables of new loop
