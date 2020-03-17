@@ -29,8 +29,8 @@ int ciclesMin = 10; // MIN Cicles per minute
 int ciclesMax = 70; // MAX Cicles per minute
 float actualCicles = 0;
 
-float speedMin = 1; // MIN motor Speed
-float speedMax = 50; // MAX motor Speed
+float speedMin = 3000; // MIN motor Speed (More is slower)
+float speedMax = 100; // MAX motor Speed (Less is more fast)
 float actualSpeed = 0;
 
 int peet_min = 5; // Value of pressure min to PEET procedure
@@ -100,9 +100,9 @@ void loop() {
         for (int i = 0; i < ((stepsPerRevolution / j)*actualVolume); i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
           // Move the motor
           digitalWrite(stepPin, HIGH);
-          delayMicroseconds(2000);
+          delayMicroseconds(actualSpeed);
           digitalWrite(stepPin, LOW);
-          delayMicroseconds(2000);
+          delayMicroseconds(actualSpeed);
         }
       }
       state = 2;
@@ -121,9 +121,9 @@ void loop() {
         for (int i = 0; i < ((stepsPerRevolution / j)*actualVolume); i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
           // Move the motor
           digitalWrite(stepPin, HIGH);
-          delayMicroseconds(2000);
+          delayMicroseconds(actualSpeed);
           digitalWrite(stepPin, LOW);
-          delayMicroseconds(2000);
+          delayMicroseconds(actualSpeed);
         }
       }
 
