@@ -62,6 +62,7 @@ void setup() {
   pinMode(startbutton, INPUT);
   pinMode(endstopper, INPUT);
   pinMode(pressure, INPUT);
+  pinMode(peep, INPUT);
   pinMode(alarm, OUTPUT);
 }
 
