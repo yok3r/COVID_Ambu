@@ -45,7 +45,7 @@ int presure_max = 50; // Security value to stop pressing
 const int startbutton = 4;
 
 const int alarm = 12;
-int peep = 6;
+int peep = A3;
 int state = 4;
 int stepCount = 0; // number of steps the motor has taken
 int startState = 0; //Define the state, 1: start 0: stop to prepare the variables before starting
@@ -62,7 +62,6 @@ void setup() {
   pinMode(startbutton, INPUT);
   pinMode(endstopper, INPUT);
   pinMode(pressure, INPUT);
-  pinMode(peep, INPUT);
   pinMode(alarm, OUTPUT);
 }
 
