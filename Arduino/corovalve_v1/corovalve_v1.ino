@@ -17,17 +17,25 @@ int pot1 = A0;
 int pot2 = A1;
 int pot3 = A2;
 
-int valuepot1 = 0; // Volume
-int valuepot2 = 0; // Cicles
-int valuepot3 = 0; // Speed
+int valuepot1 = 0; // Tidal Volume (Liters)
+int valuepot2 = 0; // Breaths per minute
+int valuepot3 = 0; // Inale to exhale time ratio
 
-           // PROTOTYPE ADJUSTS //
-           const int stepsPerRevolution = 200;  // change this to fit the number of steps per revolution
+// PROTOTYPE ADJUSTS //
+const int stepsPerRevolution = 200;  // change this to fit the number of steps per revolution
 
 // INITIAL VARIABLES  //
-int volume = 500; //Initial air volume per cicle
-int cicles = 30; // Cicles per minute
-float tempdown = 0.5; // Duration of pressure
+int volumeMin = 50; //Initial air volume per cicle
+int volumeMax = 500;
+float actualVolume = 0;
+
+int ciclesMin = 10; // MIN Cicles per minute
+int ciclesMax = 70; // MAX Cicles per minute
+float actualCicles = 0;
+
+float speedMin = 1; // MIN motor Speed
+float speedMax = 50; // MAX motor Speed
+float actualSpeed = 0;
 
 int peet_min = 5; // Value of pressure min to PEET procedure
 int presure_max = 50; // Security value to stop pressing
@@ -63,18 +71,27 @@ void loop() {
   valuepot1 = analogRead(pot1);
   valuepot2 = analogRead(pot2);
   valuepot3 = analogRead(pot3);
+  endstopperValue = digitalRead(endstopper);
 
-Serial.print("Value 1: ");
-Serial.print(valuepot1);
-Serial.print(" |  Value 2: ");
-Serial.print(valuepot2);
-Serial.print(" |  Value 3: ");
-Serial.println(valuepot3);
+  actualVolume = map(valuepot1, 20, 1000, volumeMin, volumeMax);
+  actualCicles = map(valuepot2, 20, 1000, speedMin, speedMax);
+  actualSpeed = map(valuepot3, 20, 1000, speedMin, speedMax);
+  
+  Serial.print("Volume: ");
+  Serial.print(actualVolume);
+  Serial.print(" |  Cicles: ");
+  Serial.print(actualCicles);
+  Serial.print(" |  Speed: ");
+  Serial.print(actualSpeed);
+  Serial.print(" |  Endstopper: ");
+  Serial.println(endstopperValue);
+
+
 
   currentMillis = millis();   // capture the latest value of millis()
   // Define the variables of new loop
   //Speed = fix * desired duration
-  speedServo = 100 * tempdown;
+  speedServo = 100 ;
   myStepper.setSpeed(speedServo);
   //Serial.println(currentMillis);
 
@@ -90,7 +107,7 @@ Serial.println(valuepot3);
     case 0: // Standby
       ////  WAIT FOR NEXT CYCLE  ////
       //delaynow = (60000/cicles)-(cicles*2*(speedServo*volume)); // REPASAR
-      delaynow = (60000 / cicles); // Basico para ir tirando
+      delaynow = (60000 / actualCicles); // Basico para ir tirando
       //Serial.println(delaynow);
       delay(delaynow);
       state = 1;
@@ -99,7 +116,7 @@ Serial.println(valuepot3);
     case 1: // Motor down
 
       //for (int i = 0; (i < volume) && (pressureValue <= presure_max)); i++) {
-      for (int i = 0; i < volume; i++) {
+      for (int i = 0; i < actualVolume; i++) {
         //pressureValue = analogRead(pressure);
         //myStepper.step(1);
         digitalWrite(led1, HIGH);
@@ -110,9 +127,9 @@ Serial.println(valuepot3);
       break;
 
     case 2: // Motor up+
-      //for (int i = 0; (i < volume) && (endstopperValue == LOW)); i++) {
+      //for (int i = 0; (i < actualVolume) && (endstopperValue == LOW)); i++) {
       //endstopperValue = analogRead(endstopper);
-      for (int i = 0; i < volume; i++) {
+      for (int i = 0; i < actualVolume; i++) {
         //myStepper.step(-1);
         digitalWrite(led2, HIGH);
         delay(1);
