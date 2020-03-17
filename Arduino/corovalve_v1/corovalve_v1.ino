@@ -4,7 +4,7 @@
 #define dirPin 2
 #define stepPin 3
 
-const int endstopper = 4;
+const int endstopper = 5;
 const int pressure = 8;
 
 const int pot1 = A0;
@@ -31,7 +31,11 @@ float speedMin = 5000; // MIN motor Speed (More is slower)
 float speedMax = 300; // MAX motor Speed (Less is more fast)
 float actualSpeed = 0;
 
-int peet_min = 5; // Value of pressure min to PEET procedure
+float peepAdjustMin = 10;
+float peepAdjustMax = 5000;
+float actualpeep = 0;
+float valuepeep = 0;
+int peep_min = 5; // Value of pressure min to PEEP procedure
 int presure_max = 50; // Security value to stop pressing
 
 
@@ -40,8 +44,8 @@ int presure_max = 50; // Security value to stop pressing
 // Buttons
 const int startbutton = 4;
 
-const int alarm = 12:
-
+const int alarm = 12;
+int peep = 6;
 int state = 4;
 int stepCount = 0; // number of steps the motor has taken
 int startState = 0; //Define the state, 1: start 0: stop to prepare the variables before starting
@@ -64,7 +68,7 @@ void setup() {
 void loop() {
 
   checkVariables();
-
+  checkPeep();
 
   currentMillis = millis();   // capture the latest value of millis()
   // Define the variables of new loop
@@ -97,6 +101,7 @@ void loop() {
       for (int j = 0; j < 10; j++) { //Numero de veces que revisas las variables mientras corre el motor
         // check variables
         checkVariables();
+        checkPeep();
         for (int i = 0; i < ((stepsPerRevolution / j)*actualVolume); i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
           // Move the motor
           digitalWrite(stepPin, HIGH);
@@ -114,11 +119,11 @@ void loop() {
 
       digitalWrite(dirPin, LOW); // Set the spinning direction counterclockwise:
 
-      for (int j = 0; j < 10; j++) { //Numero de veces que revisas las variables mientras corre el motor
+      while (endstopperValue == 1) { //Numero de veces que revisas las variables mientras corre el motor
         // check variables
         checkVariables();
-        for (int i = 0; i < ((stepsPerRevolution / j)*actualVolume); i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
-          // Move the motor
+        checkPeep();
+        for (int i = 0; i < stepsPerRevolution * 25; i++) { //Ajustar el 25
           digitalWrite(stepPin, HIGH);
           delayMicroseconds(actualSpeed);
           digitalWrite(stepPin, LOW);
@@ -158,4 +163,12 @@ void checkVariables() {
   Serial.print(actualSpeed);
   Serial.print(" |  Endstopper: ");
   Serial.println(endstopperValue);
+}
+
+void checkPeep() {
+  valuepeep = analogRead(peep);
+  actualpeep = map(valuepeep, 0, 1000, peepAdjustMin, peepAdjustMax);
+
+  Serial.print("Peep: ");
+  Serial.println(actualpeep);
 }
