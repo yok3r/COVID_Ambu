@@ -119,7 +119,7 @@ void loop() {
 
       digitalWrite(dirPin, LOW); // Set the spinning direction counterclockwise:
 
-      //while (endstopperValue == 1) { //Numero de veces que revisas las variables mientras corre el motor
+      //if (endstopperValue == 1) { //Numero de veces que revisas las variables mientras corre el motor
       for (int i = 0; i < 20; i++) {
         // check variables
         checkVariables();
@@ -146,12 +146,12 @@ void loop() {
       digitalWrite(dirPin, HIGH);
       for (int i = 0; i < ((stepsPerRevolution)*actualVolume / 10); i++) {
         // Move the motor
-
         digitalWrite(stepPin, HIGH);
         delayMicroseconds(actualSpeed);
         digitalWrite(stepPin, LOW);
         delayMicroseconds(actualSpeed);
       }
+      state = 3;
       break;
 
     case 4: // PAUSED
