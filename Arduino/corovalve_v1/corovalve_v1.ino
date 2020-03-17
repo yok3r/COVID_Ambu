@@ -119,10 +119,15 @@ void loop() {
 
       digitalWrite(dirPin, LOW); // Set the spinning direction counterclockwise:
 
-      while (endstopperValue == 1) { //Numero de veces que revisas las variables mientras corre el motor
+      //while (endstopperValue == 1) { //Numero de veces que revisas las variables mientras corre el motor
+      for (int i = 0; i < 20; i++) {
         // check variables
         checkVariables();
         checkPeep();
+        if (actualpeep > 20) {
+          state = 3;
+          break;
+        }
         for (int i = 0; i < stepsPerRevolution * 25; i++) { //Ajustar el 25
           digitalWrite(stepPin, HIGH);
           delayMicroseconds(actualSpeed);
@@ -134,8 +139,19 @@ void loop() {
       state = 0;
       break;
 
-    case 3: // PEET
-      // statements
+    case 3: // PEEP
+
+      Serial.print("PEEP MODE");
+
+      digitalWrite(dirPin, HIGH);
+      for (int i = 0; i < ((stepsPerRevolution)*actualVolume / 10); i++) {
+        // Move the motor
+
+        digitalWrite(stepPin, HIGH);
+        delayMicroseconds(actualSpeed);
+        digitalWrite(stepPin, LOW);
+        delayMicroseconds(actualSpeed);
+      }
       break;
 
     case 4: // PAUSED
@@ -171,4 +187,5 @@ void checkPeep() {
 
   Serial.print("Peep: ");
   Serial.println(actualpeep);
+
 }
