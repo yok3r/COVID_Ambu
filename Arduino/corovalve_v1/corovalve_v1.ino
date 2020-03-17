@@ -64,7 +64,7 @@ void setup() {
 
 void loop() {
 
-
+  checkVariables();
 
 
   currentMillis = millis();   // capture the latest value of millis()
@@ -96,6 +96,7 @@ void loop() {
 
       for (int j = 0; j < 10; j++) { //Numero de veces que revisas las variables mientras corre el motor
         // check variables
+        checkVariables();
         for (int i = 0; i < ((stepsPerRevolution / j)*actualVolume); i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
           // Move the motor
           digitalWrite(stepPin, HIGH);
@@ -103,8 +104,6 @@ void loop() {
           digitalWrite(stepPin, LOW);
           delayMicroseconds(2000);
         }
-        Serial.print("Motor fase: ");
-        Serial.println(j);
       }
       state = 2;
       break;
@@ -118,6 +117,7 @@ void loop() {
 
       for (int j = 0; j < 10; j++) { //Numero de veces que revisas las variables mientras corre el motor
         // check variables
+        checkVariables();
         for (int i = 0; i < ((stepsPerRevolution / j)*actualVolume); i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
           // Move the motor
           digitalWrite(stepPin, HIGH);
@@ -125,8 +125,6 @@ void loop() {
           digitalWrite(stepPin, LOW);
           delayMicroseconds(2000);
         }
-        Serial.print("Motor fase: ");
-        Serial.println(j);
       }
 
       state = 0;
