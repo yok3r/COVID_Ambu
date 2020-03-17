@@ -4,14 +4,12 @@
 #define dirPin 2
 #define stepPin 3
 
-int led1 = 5;
-int led2 = 6;
-int endstopper = 7;
-int pressure = 8;
+const int endstopper = 4;
+const int pressure = 8;
 
-int pot1 = A0;
-int pot2 = A1;
-int pot3 = A2;
+const int pot1 = A0;
+const int pot2 = A1;
+const int pot3 = A2;
 
 int valuepot1 = 0; // Tidal Volume (Liters)
 int valuepot2 = 0; // Breaths per minute
@@ -29,8 +27,8 @@ int ciclesMin = 10; // MIN Cicles per minute
 int ciclesMax = 70; // MAX Cicles per minute
 float actualCicles = 0;
 
-float speedMin = 3000; // MIN motor Speed (More is slower)
-float speedMax = 100; // MAX motor Speed (Less is more fast)
+float speedMin = 5000; // MIN motor Speed (More is slower)
+float speedMax = 300; // MAX motor Speed (Less is more fast)
 float actualSpeed = 0;
 
 int peet_min = 5; // Value of pressure min to PEET procedure
@@ -41,6 +39,8 @@ int presure_max = 50; // Security value to stop pressing
 // OTHERS //
 // Buttons
 const int startbutton = 4;
+
+const int alarm = 12:
 
 int state = 4;
 int stepCount = 0; // number of steps the motor has taken
@@ -56,10 +56,9 @@ void setup() {
 
   Serial.begin(9600);
   pinMode(startbutton, INPUT);
-  pinMode(led1, OUTPUT);
-  pinMode(led2, OUTPUT);
   pinMode(endstopper, INPUT);
   pinMode(pressure, INPUT);
+  pinMode(alarm, OUTPUT);
 }
 
 void loop() {
@@ -85,6 +84,7 @@ void loop() {
     case 0: // Standby
       ////  WAIT FOR NEXT CYCLE  ////
       //delaynow = (60000/cicles)-(cicles*2*(speedServo*volume)); // REPASAR
+
       delaynow = (60000 / actualCicles); // Basico para ir tirando
       Serial.println("Waiting");
       delay(delaynow);
@@ -112,7 +112,6 @@ void loop() {
       //for (int i = 0; (i < actualVolume) && (endstopperValue == LOW)); i++) {
       //endstopperValue = analogRead(endstopper);
 
-
       digitalWrite(dirPin, LOW); // Set the spinning direction counterclockwise:
 
       for (int j = 0; j < 10; j++) { //Numero de veces que revisas las variables mientras corre el motor
@@ -137,9 +136,6 @@ void loop() {
     case 4: // PAUSED
       break;
   }
-
-
-
 }
 
 void checkVariables() {
