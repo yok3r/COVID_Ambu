@@ -29,17 +29,25 @@ int valuepot3 = 0; // Speed
 // PROTOTYPE ADJUSTS //
 #define stepsPerRevolution 1  // change this to fit the number of steps per revolution
 int velRetorno = 1000; // Velocidad de retorno del motor
-int distanciaIdaMax = 50; // Distancia maxima en la ida por presion
+int distanciaPresionMax = 1000; // Distancia maxima en la ida por presion
 int TresholdPeep = 36; // Treshold peep
 
 int peep_min = 5; // Value of pressure min to PEEP procedure
-int presure_max = 50; // Security value to stop pressing
+int presure_max = 600; // Security value to stop pressing
+float peepAdjustMin = 0;
+float peepAdjustMax = 100;
 
+int maxup = 30; //Max up the Z
 
 // INITIAL VARIABLES  //
+//Per volumen
 int volumeMin = 50; //Initial air volume per cicle
 int volumeMax = 500;
 float actualVolume = 0;
+//Per presure
+int presureMin = 0; //Initial air volume per cicle
+int presureMax = 700;
+float actualPresure = 0;
 
 int ciclesMin = 4; // MIN Cicles per minute
 int ciclesMax = 30; // MAX Cicles per minute
@@ -49,8 +57,7 @@ float speedMin = 5000; // MIN motor Speed (More is slower)
 float speedMax = 300; // MAX motor Speed (Less is more fast)
 float actualSpeed = 0;
 
-float peepAdjustMin = 0;
-float peepAdjustMax = 100;
+
 float actualpeep = 0;
 float valuepeep = 0;
 
@@ -64,7 +71,7 @@ String impresion = "";
 const int alarm = 12;
 
 int onoffState = 0;
-int state = 0;
+int state = 5;
 int stepCount = 0; // number of steps the motor has taken
 int startState = 0; //Define the state, 1: start 0: stop to prepare the variables before starting
 unsigned long currentMillis = 0;    // stores the value of millis() in each iteration of loop()
@@ -76,7 +83,7 @@ int pressureValue = 0; // Keep the pressure value
 int endstopperValue = 0;
 
 float loops = 10;
-int maxup = 30; //Max up the Z
+
 
 void setup() {
   Serial.begin(9600);
@@ -101,14 +108,17 @@ void loop() {
   checkPeep();
 
   currentMillis = millis();   // capture the latest value of millis()
+  Serial.print("Estado: ");
   Serial.println(state);
 
   if (onoffState == HIGH) {
     if (state == 5) {
       state = 0; // Start
+      Serial.println("Start");
     }
   } else {
     state = 5; // Stop
+    Serial.println("Stop");
   }
 
   switch (state) {
@@ -121,8 +131,10 @@ void loop() {
         lastMillis = millis();
         if (modeselectorState == HIGH) {//Si esta selecionado el modo presion...
           state = 1; // Modo volumen
+          Serial.println("Anar al modo VOlumen");
         } else {
           state = 4; // Modo presion
+          Serial.println("Anar al modo presion");
         }
 
       } else {
@@ -132,17 +144,20 @@ void loop() {
         if (valuepeep <= TresholdPeep) {
           state = 3;
           break;
+        } else if (valuepeep >= presure_max) {
+          state = 2;
+          break;
         }
         state = 0;
         break;
       }
-
+      break;
 
     case 1: // MODO VOLUMEN
-    Serial.println(state);
+      Serial.println("Modo 1");
       ieMillisStart = millis();
       digitalWrite(dirPin, HIGH); // Set the spinning direction clockwise:
-      for (int i = 0; i < ((stepsPerRevolution)*actualVolume) ; i++) { 
+      for (int i = 0; i < ((stepsPerRevolution)*actualVolume) ; i++) {
         checkPeep();
         if (valuepeep >= presure_max) {
           state = 2;
@@ -162,10 +177,9 @@ void loop() {
     case 2: // Motor up+
       //for (int i = 0; (i < actualVolume) && (endstopperValue == LOW)); i++) {
       checkVariables();
-      Serial.print("State2");
+      Serial.print("State 2");
       digitalWrite(dirPin, LOW);
-      state = 0; // Next state
-
+      
       for (int j = 0; j < maxup; j++) { //Numero de veces que revisas las variables mientras corre el motor
         checkPeep();
         if (valuepeep <= TresholdPeep) {
@@ -184,13 +198,14 @@ void loop() {
           delayMicroseconds(velRetorno);
         }
       }
+      state = 0;
       break;
 
     case 3: // PEEP
-      //Serial.print("PEEP MODE");
+      Serial.print("PEEP MODE");
       digitalWrite(dirPin, HIGH); // Set the spinning direction clockwise:
 
-      for (int i = 0; i < ((stepsPerRevolution)*peepPresure) ; i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
+      for (int i = 0; i < ((stepsPerRevolution)*50) ; i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
         // Move the motor
         digitalWrite(stepPin, HIGH);
         delayMicroseconds(actualSpeed);
@@ -201,16 +216,26 @@ void loop() {
       break;
 
     case 4: // MODO PRESION
-      for (int j = 0; j < distanciaIdaMax; j++) {
-        checkPeep();
 
-        for (int i = 0; i < ((stepsPerRevolution)*actualVolume) / loops; i++) {
+      digitalWrite(dirPin, HIGH); // Set the spinning direction clockwise:
+      Serial.print("State 4");
+      for (int i = 0; i < (distanciaPresionMax) ; i++) {
+        checkPeep();
+        if (valuepeep >= actualPresure) {
+          state = 2;
+          break;
+        }
+        for (int i = 0; i < ((stepsPerRevolution)*peepPresure) ; i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
+          // Move the motor
           digitalWrite(stepPin, HIGH);
-          delayMicroseconds(velRetorno);
+          delayMicroseconds(actualSpeed);
           digitalWrite(stepPin, LOW);
-          delayMicroseconds(velRetorno);
+          delayMicroseconds(actualSpeed);
         }
       }
+
+      ieMillisEnd = millis();
+      state = 2;
       break;
 
     case 5:
@@ -224,7 +249,6 @@ void checkVariables() {
   modeselectorState  = digitalRead(modeselector);
   onoffState  = digitalRead(onoff);
 
-
   //Serial.print(" Onoff: ");
   //Serial.println(onoffState);
 
@@ -234,25 +258,26 @@ void checkVariables() {
   valuepot3 = analogRead(pot3); // Velocidad
   endstopperValue = digitalRead(endstopper);
 
-  actualVolume = map(valuepot1, 0, 1024, volumeMin, volumeMax);
+  if (modeselectorState == HIGH) { //Si esta selecionado el modo presion
+    actualVolume = map(valuepot1, 0, 1024, volumeMin, volumeMax);
+  } else {
+    actualPresure = map(valuepot1, 0, 1024, presureMin, presureMax);
+  }
+
   actualCicles = map(valuepot2, 0, 1024, ciclesMin, ciclesMax);
   actualSpeed = map(valuepot3, 0, 1024, speedMin, speedMax);
 
-
-
   lcd.setCursor(0, 0);
-  int actualVolumePrint = (int) actualVolume;
-  int actualCiclesPrint = (int) actualCicles;
-  int actualSpeedPrint = (int) actualSpeed;
 
   float ieMillisRatio = (60000 / actualCicles) / (ieMillisEnd - ieMillisStart);
 
   //Serial.print("IE Ratio:");
   //Serial.println(ieMillisRatio);
-  if (modeselectorState == 0) { //Si esta selecionado el modo presion
-    impresion = ("P " + String(actualVolumePrint) + "cmH2o "  +  String(actualCiclesPrint) + "/min   ");
+
+  if (modeselectorState == HIGH) { //Si esta selecionado el modo presion
+    impresion = ("VT " + String((int)actualVolume) + "mL "  +  String((int) actualCicles) + "/min   ");
   } else {
-    impresion = ("VT " + String(actualVolumePrint) + "mL "  +  String(actualCiclesPrint) + "/min   ");
+    impresion = ("P " + String((int)actualPresure) + "cmH2o "  +  String((int) actualCicles) + "/min   ");
   }
 
   //Serial.print(impresion);
@@ -260,11 +285,10 @@ void checkVariables() {
   lcd.setCursor (0, 1);
 
 
-
-  if (modeselectorState == 0) {//Si esta selecionado el modo presion
-    impresion = ("1:" + String(ieMillisRatio) + "  " + String((int)actualpeep) + "mL   ");
-  } else {
+  if (modeselectorState == HIGH) {//Si esta selecionado el modo presion
     impresion = ("1:" + String(ieMillisRatio) + " " + String((int)actualpeep) + "cmH2o  ");
+  } else {
+    impresion = ("1:" + String(ieMillisRatio) + "  " + String((int)actualpeep) + "mL   ");
   }
 
   //Serial.print(impresion);
@@ -279,11 +303,11 @@ void checkVariables() {
 void checkPeep() {
   valuepeep = analogRead(peep);
   //Serial.print(" Peep: ");
-  //Serial.println(valuepeep);
+ // Serial.println(valuepeep);
 
   ///   //actualpeep = (valuepeep - SensorOffset - 512.0) / 10.0;
-  actualpeep = 45;
-  valuepeep = 45;
+  actualpeep =  valuepeep;
+  //valuepeep = 45;
 
 }
 //actualpeep = map(valuepeep, 0, 1000, peepAdjustMin, peepAdjustMax);
