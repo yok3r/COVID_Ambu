@@ -10,10 +10,15 @@ const int endstopper = 5; // Pin del endstopper
 const int modeselector = 6; // Pin del selector de modo Volumen / Presion
 int modeselectorState = 0; // Estado del modo
 
-
+//ANALOGS//
 const int pot1 = A0;
 const int pot2 = A1;
 const int pot3 = A2;
+int peep = A3;
+//A4 - LCD Screen SDA
+//A5 - LCD Screen SCL
+
+//DIGITALS//
 
 int valuepot1 = 0; // Tidal Volume (Liters)
 int valuepot2 = 0; // Breaths per minute
@@ -42,7 +47,7 @@ float valuepeep = 0;
 int TresholdPeep = 30; // Treshold peep
 int peep_min = 5; // Value of pressure min to PEEP procedure
 int presure_max = 50; // Security value to stop pressing
-
+int peepPresure = 10; // Variable to press the peep
 
 
 // OTHERS //
@@ -50,7 +55,7 @@ int presure_max = 50; // Security value to stop pressing
 String impresion = "";
 const int alarm = 12;
 
-int peep = A3;
+
 int state = 0;
 int stepCount = 0; // number of steps the motor has taken
 int startState = 0; //Define the state, 1: start 0: stop to prepare the variables before starting
@@ -60,6 +65,7 @@ int pressureValue = 0; // Keep the pressure value
 int endstopperValue = 0;
 
 float loops = 10;
+int maxup = 30; //Max up the Z
 
 void setup() {
   pinMode(stepPin, OUTPUT);
@@ -84,6 +90,7 @@ void loop() {
   checkPeep();
 
   currentMillis = millis();   // capture the latest value of millis()
+  Serial.println(state);
 
   switch (state) {
     case 0: // Standby
@@ -111,16 +118,17 @@ void loop() {
 
     case 2: // Motor up+
       //for (int i = 0; (i < actualVolume) && (endstopperValue == LOW)); i++) {
-      float maxup = 30;
+      
       Serial.print("State2");
       digitalWrite(dirPin, LOW);
+      state = 0; // Next state
+
       for (int j = 0; j < maxup; j++) { //Numero de veces que revisas las variables mientras corre el motor
         checkPeep();
         if (valuepeep >= TresholdPeep) {
           state = 3;
           break;
         }
-
         endstopperValue = digitalRead(endstopper);
         if (endstopperValue == 0) { // Para si toca el stopper
           state = 0;
@@ -131,26 +139,22 @@ void loop() {
           delayMicroseconds(actualSpeed);
           digitalWrite(stepPin, LOW);
           delayMicroseconds(actualSpeed);
-
         }
       }
-
-      state = 0;
       break;
 
     case 3: // PEEP
-
       Serial.print("PEEP MODE");
-
-      digitalWrite(dirPin, HIGH);
-      for (int i = 0; i < ((stepsPerRevolution)*actualVolume / 10); i++) {
+      digitalWrite(dirPin, HIGH); // Set the spinning direction clockwise:
+      
+      for (int i = 0; i < ((stepsPerRevolution)*peepPresure) ; i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
         // Move the motor
         digitalWrite(stepPin, HIGH);
         delayMicroseconds(actualSpeed);
         digitalWrite(stepPin, LOW);
         delayMicroseconds(actualSpeed);
       }
-      state = 3;
+      state = 2;
       break;
 
     case 4: // PAUSED
