@@ -32,6 +32,9 @@ int velRetorno = 1000; // Velocidad de retorno del motor
 int distanciaIdaMax = 50; // Distancia maxima en la ida por presion
 int TresholdPeep = 36; // Treshold peep
 
+int peep_min = 5; // Value of pressure min to PEEP procedure
+int presure_max = 50; // Security value to stop pressing
+
 
 // INITIAL VARIABLES  //
 int volumeMin = 50; //Initial air volume per cicle
@@ -51,8 +54,7 @@ float peepAdjustMax = 100;
 float actualpeep = 0;
 float valuepeep = 0;
 
-int peep_min = 5; // Value of pressure min to PEEP procedure
-int presure_max = 50; // Security value to stop pressing
+
 int peepPresure = 10; // Variable to press the peep
 
 
@@ -140,7 +142,12 @@ void loop() {
     Serial.println(state);
       ieMillisStart = millis();
       digitalWrite(dirPin, HIGH); // Set the spinning direction clockwise:
-      for (int i = 0; i < ((stepsPerRevolution)*actualVolume) ; i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
+      for (int i = 0; i < ((stepsPerRevolution)*actualVolume) ; i++) { 
+        checkPeep();
+        if (valuepeep >= presure_max) {
+          state = 2;
+          break;
+        }
         // Move the motor
         digitalWrite(stepPin, HIGH);
         delayMicroseconds(actualSpeed);
@@ -275,7 +282,8 @@ void checkPeep() {
   //Serial.println(valuepeep);
 
   ///   //actualpeep = (valuepeep - SensorOffset - 512.0) / 10.0;
-  actualpeep = 50;
+  actualpeep = 45;
+  valuepeep = 45;
 
 }
 //actualpeep = map(valuepeep, 0, 1000, peepAdjustMin, peepAdjustMax);
