@@ -199,7 +199,7 @@ void checkVariables() {
     impresion = ("I:E " + String(actualSpeedPrint) + " P  ");
   }
 
-  Serial.print(impresion);
+  Serial.print(impresion); 
   lcd.print(impresion);
   lcd.display();
 
