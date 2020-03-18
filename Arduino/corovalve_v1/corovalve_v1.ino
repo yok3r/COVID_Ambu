@@ -35,10 +35,11 @@ float speedMin = 5000; // MIN motor Speed (More is slower)
 float speedMax = 300; // MAX motor Speed (Less is more fast)
 float actualSpeed = 0;
 
-float peepAdjustMin = 10;
-float peepAdjustMax = 5000;
+float peepAdjustMin = 0;
+float peepAdjustMax = 100;
 float actualpeep = 0;
 float valuepeep = 0;
+int TresholdPeep = 30; // Treshold peep
 int peep_min = 5; // Value of pressure min to PEEP procedure
 int presure_max = 50; // Security value to stop pressing
 
@@ -46,12 +47,11 @@ int presure_max = 50; // Security value to stop pressing
 
 // OTHERS //
 // Buttons
-const int startbutton = 4;
 String impresion = "";
 const int alarm = 12;
 
 int peep = A3;
-int state = 4;
+int state = 0;
 int stepCount = 0; // number of steps the motor has taken
 int startState = 0; //Define the state, 1: start 0: stop to prepare the variables before starting
 unsigned long currentMillis = 0;    // stores the value of millis() in each iteration of loop()
@@ -59,12 +59,14 @@ float delaynow = 0;
 int pressureValue = 0; // Keep the pressure value
 int endstopperValue = 0;
 
+float loops = 10;
+
 void setup() {
   pinMode(stepPin, OUTPUT);
   pinMode(dirPin, OUTPUT);
 
   Serial.begin(9600);
-  pinMode(startbutton, INPUT);
+
   pinMode(endstopper, INPUT);
   pinMode(alarm, OUTPUT);
   pinMode(modeselector, INPUT);
@@ -82,18 +84,6 @@ void loop() {
   checkPeep();
 
   currentMillis = millis();   // capture the latest value of millis()
-  // Define the variables of new loop
-  //Speed = fix * desired duration
-
-  //Serial.println(currentMillis);
-
-  if (startState == HIGH) { // Check to start
-    state = 1;
-    startState = 0;
-  } else { // Waiting the button to start
-    startState = digitalRead(startbutton);
-    //Serial.println(startState);
-  }
 
   switch (state) {
     case 0: // Standby
@@ -108,42 +98,40 @@ void loop() {
 
     case 1: // Motor down
       digitalWrite(dirPin, HIGH); // Set the spinning direction clockwise:
-
-      for (int j = 0; j < 10; j++) { //Numero de veces que revisas las variables mientras corre el motor
-        // check variables
-        checkVariables();
-        checkPeep();
-        for (int i = 0; i < ((stepsPerRevolution / j)*actualVolume); i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
-          // Move the motor
-          digitalWrite(stepPin, HIGH);
-          delayMicroseconds(actualSpeed);
-          digitalWrite(stepPin, LOW);
-          delayMicroseconds(actualSpeed);
-        }
+      for (int i = 0; i < ((stepsPerRevolution)*actualVolume) ; i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
+        // Move the motor
+        digitalWrite(stepPin, HIGH);
+        delayMicroseconds(actualSpeed);
+        digitalWrite(stepPin, LOW);
+        delayMicroseconds(actualSpeed);
       }
       state = 2;
       break;
 
+
     case 2: // Motor up+
       //for (int i = 0; (i < actualVolume) && (endstopperValue == LOW)); i++) {
-      //endstopperValue = analogRead(endstopper);
-
-      digitalWrite(dirPin, LOW); // Set the spinning direction counterclockwise:
-
-      //if (endstopperValue == 1) { //Numero de veces que revisas las variables mientras corre el motor
-      for (int i = 0; i < 20; i++) {
-        // check variables
-        checkVariables();
+      float maxup = 30;
+      Serial.print("State2");
+      digitalWrite(dirPin, LOW);
+      for (int j = 0; j < maxup; j++) { //Numero de veces que revisas las variables mientras corre el motor
         checkPeep();
-        if (actualpeep > 20) {
+        if (valuepeep >= TresholdPeep) {
           state = 3;
           break;
         }
-        for (int i = 0; i < stepsPerRevolution * 25; i++) { //Ajustar el 25
+
+        endstopperValue = digitalRead(endstopper);
+        if (endstopperValue == 0) { // Para si toca el stopper
+          state = 0;
+          break;
+        }
+        for (int i = 0; i < ((stepsPerRevolution)*actualVolume) / loops; i++) {
           digitalWrite(stepPin, HIGH);
           delayMicroseconds(actualSpeed);
           digitalWrite(stepPin, LOW);
           delayMicroseconds(actualSpeed);
+
         }
       }
 
@@ -166,6 +154,7 @@ void loop() {
       break;
 
     case 4: // PAUSED
+      delay(20);
       break;
   }
 }
@@ -174,8 +163,6 @@ void checkVariables() {
 
 
   modeselectorState  = digitalRead(modeselector);
-
-
 
   // Read the value of 3 parameters
   valuepot1 = analogRead(pot1); // Volumen - Presion
@@ -193,39 +180,34 @@ void checkVariables() {
   int actualSpeedPrint = (int) actualSpeed;
 
   if (modeselectorState == 0) { //Si esta selecionado el modo presion
-  impresion = ("  P " + String(actualVolumePrint) + " FR "  +  String(actualCiclesPrint));
+    impresion = ("  P " + String(actualVolumePrint) + " FR "  +  String(actualCiclesPrint));
   } else {
     impresion = (" VT " + String(actualVolumePrint) + " FR "  +  String(actualCiclesPrint));
   }
 
-  Serial.println("---------------------");
-  Serial.println (impresion);
+  Serial.print(impresion);
   lcd.print(impresion);
   lcd.setCursor (0, 1);
 
   if (modeselectorState == 0) {//Si esta selecionado el modo presion
-  impresion = ("I:E " + String(actualSpeedPrint) + " VT  ");
+    impresion = ("I:E " + String(actualSpeedPrint) + " VT  ");
   } else {
     impresion = ("I:E " + String(actualSpeedPrint) + " P  ");
   }
 
-
-  Serial.println (impresion);
+  Serial.print(impresion);
   lcd.print(impresion);
   lcd.display();
 
-  Serial.print("Endstopper: ");
-  Serial.println(endstopperValue);
-  Serial.println("---------------------");
-  Serial.println(" ");
-  Serial.println(" ");
+  Serial.print("  Endstopper: ");
+  Serial.print(endstopperValue);
+
 }
 
 void checkPeep() {
   valuepeep = analogRead(peep);
-  actualpeep = map(valuepeep, 0, 1000, peepAdjustMin, peepAdjustMax);
-
-  Serial.print("Peep: ");
-  Serial.println(actualpeep);
+  Serial.print(" Peep: ");
+  Serial.println(valuepeep);
 
 }
+//actualpeep = map(valuepeep, 0, 1000, peepAdjustMin, peepAdjustMax);
