@@ -20,24 +20,29 @@ int peep = A3;
 //A4 - LCD Screen SDA
 //A5 - LCD Screen SCL
 
-
-
 int valuepot1 = 0; // Tidal Volume (Liters)
 int valuepot2 = 0; // Breaths per minute
 int valuepot3 = 0; // Speed
 
+
+
+
 // PROTOTYPE ADJUSTS //
 #define stepsPerRevolution 1  // change this to fit the number of steps per revolution
-int velRetorno = 1000; // Velocidad de retorno del motor
+
 int distanciaPresionMax = 1000; // Distancia maxima en la ida por presion
-int TresholdPeep = 36; // Treshold peep
+int TresholdPeep = 20; // Treshold to activate peep
+
+//             Valores de Retorno
+int maxup = 100; //Max up the Z
+int velRetorno = 800; // Velocidad de retorno del motor (menos es mas rapido)
 
 int peep_min = 5; // Value of pressure min to PEEP procedure
 int presure_max = 600; // Security value to stop pressing
 float peepAdjustMin = 0;
 float peepAdjustMax = 100;
 
-int maxup = 30; //Max up the Z
+
 
 // INITIAL VARIABLES  //
 //Per volumen
@@ -69,6 +74,7 @@ int peepPresure = 10; // Variable to press the peep
 // Buttons
 String impresion = "";
 const int alarm = 12;
+int stateAlarm = 0;
 
 int onoffState = 0;
 int state = 5;
@@ -106,6 +112,12 @@ void loop() {
 
   checkVariables();
   checkPeep();
+  if (stateAlarm == HIGH) {
+    digitalWrite(alarm, HIGH);
+    delay(100);
+    digitalWrite(alarm, LOW);
+    stateAlarm = 0;
+  }
 
   currentMillis = millis();   // capture the latest value of millis()
   Serial.print("Estado: ");
@@ -142,9 +154,11 @@ void loop() {
         checkVariables();
         checkPeep();
         if (valuepeep <= TresholdPeep) {
+          stateAlarm = 1;
           state = 3;
           break;
         } else if (valuepeep >= presure_max) {
+          stateAlarm = 1;
           state = 2;
           break;
         }
@@ -177,27 +191,32 @@ void loop() {
     case 2: // Motor up+
       //for (int i = 0; (i < actualVolume) && (endstopperValue == LOW)); i++) {
       checkVariables();
-      Serial.print("State 2");
+      Serial.println("State 2");
       digitalWrite(dirPin, LOW);
-      
+
       for (int j = 0; j < maxup; j++) { //Numero de veces que revisas las variables mientras corre el motor
         checkPeep();
+        Serial.println("Punt 1");
         if (valuepeep <= TresholdPeep) {
+          Serial.println("Punt 2");
           state = 3;
           break;
         }
         endstopperValue = digitalRead(endstopper);
         if (endstopperValue == 0) { // Para si toca el stopper
+          Serial.println("Punt 3");
           state = 0;
           break;
         }
-        for (int i = 0; i < ((stepsPerRevolution)*actualVolume) / loops; i++) {
+        for (int i = 0; i < 5; i++) {
+
           digitalWrite(stepPin, HIGH);
           delayMicroseconds(velRetorno);
           digitalWrite(stepPin, LOW);
           delayMicroseconds(velRetorno);
         }
       }
+      Serial.println("Punt 5");
       state = 0;
       break;
 
@@ -205,7 +224,7 @@ void loop() {
       Serial.print("PEEP MODE");
       digitalWrite(dirPin, HIGH); // Set the spinning direction clockwise:
 
-      for (int i = 0; i < ((stepsPerRevolution)*50) ; i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
+      for (int i = 0; i < ((stepsPerRevolution) * 50) ; i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
         // Move the motor
         digitalWrite(stepPin, HIGH);
         delayMicroseconds(actualSpeed);
@@ -258,11 +277,8 @@ void checkVariables() {
   valuepot3 = analogRead(pot3); // Velocidad
   endstopperValue = digitalRead(endstopper);
 
-  if (modeselectorState == HIGH) { //Si esta selecionado el modo presion
-    actualVolume = map(valuepot1, 0, 1024, volumeMin, volumeMax);
-  } else {
-    actualPresure = map(valuepot1, 0, 1024, presureMin, presureMax);
-  }
+  actualVolume = map(valuepot1, 0, 1024, volumeMin, volumeMax);
+  actualPresure = map(valuepot1, 0, 1024, presureMin, presureMax);
 
   actualCicles = map(valuepot2, 0, 1024, ciclesMin, ciclesMax);
   actualSpeed = map(valuepot3, 0, 1024, speedMin, speedMax);
@@ -303,7 +319,7 @@ void checkVariables() {
 void checkPeep() {
   valuepeep = analogRead(peep);
   //Serial.print(" Peep: ");
- // Serial.println(valuepeep);
+  // Serial.println(valuepeep);
 
   ///   //actualpeep = (valuepeep - SensorOffset - 512.0) / 10.0;
   actualpeep =  valuepeep;
