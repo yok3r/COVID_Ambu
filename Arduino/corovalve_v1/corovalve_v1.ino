@@ -3,6 +3,8 @@
 // LIBRARIES //
 #define dirPin 2
 #define stepPin 3
+#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 const int endstopper = 5;
 const int pressure = 8;
@@ -13,7 +15,7 @@ const int pot3 = A2;
 
 int valuepot1 = 0; // Tidal Volume (Liters)
 int valuepot2 = 0; // Breaths per minute
-int valuepot3 = 0; // Inale to exhale time ratio
+int valuepot3 = 0; // Speed
 
 // PROTOTYPE ADJUSTS //
 #define stepsPerRevolution 1  // change this to fit the number of steps per revolution
@@ -43,7 +45,7 @@ int presure_max = 50; // Security value to stop pressing
 // OTHERS //
 // Buttons
 const int startbutton = 4;
-
+String impresion = "";
 const int alarm = 12;
 int peep = A3;
 int state = 4;
@@ -63,6 +65,13 @@ void setup() {
   pinMode(endstopper, INPUT);
   pinMode(pressure, INPUT);
   pinMode(alarm, OUTPUT);
+
+
+
+  lcd.init();
+  lcd.backlight();
+  lcd.clear();
+
 }
 
 void loop() {
@@ -162,14 +171,27 @@ void loop() {
 void checkVariables() {
 
   // Read the value of 3 parameters
-  valuepot1 = analogRead(pot1);
-  valuepot2 = analogRead(pot2);
-  valuepot3 = analogRead(pot3);
+  valuepot1 = analogRead(pot1); // Volumen - Presion
+  valuepot2 = analogRead(pot2); // Ciclos
+  valuepot3 = analogRead(pot3); // Velocidad
   endstopperValue = digitalRead(endstopper);
 
   actualVolume = map(valuepot1, 20, 1000, volumeMin, volumeMax);
   actualCicles = map(valuepot2, 20, 1000, ciclesMin, ciclesMax);
   actualSpeed = map(valuepot3, 20, 1000, speedMin, speedMax);
+
+  lcd.setCursor(0, 0);
+  int actualVolumePrint = (int) actualVolume;
+  int actualCiclesPrint = (int) actualCicles;
+  int actualSpeedPrint = (int) actualSpeed;
+
+  impresion = (String(actualVolumePrint) + " | " +  String(actualCiclesPrint) + " | " +   String(actualSpeedPrint)); //Estamos en este punto
+  Serial.print (impresion);
+  lcd.print(impresion);
+  lcd.setCursor (0, 1);
+  impresion = ("Vol | Cicl | Vel ");
+  lcd.print(impresion);
+  lcd.display();
 
   Serial.print("Volume: ");
   Serial.print(actualVolume);
