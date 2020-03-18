@@ -6,8 +6,10 @@
 #include <LiquidCrystal_I2C.h>
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-const int endstopper = 5;
-const int pressure = 8;
+const int endstopper = 5; // Pin del endstopper
+const int modeselector = 6; // Pin del selector de modo Volumen / Presion
+int modeselectorState = 0; // Estado del modo
+
 
 const int pot1 = A0;
 const int pot2 = A1;
@@ -47,6 +49,7 @@ int presure_max = 50; // Security value to stop pressing
 const int startbutton = 4;
 String impresion = "";
 const int alarm = 12;
+
 int peep = A3;
 int state = 4;
 int stepCount = 0; // number of steps the motor has taken
@@ -63,9 +66,8 @@ void setup() {
   Serial.begin(9600);
   pinMode(startbutton, INPUT);
   pinMode(endstopper, INPUT);
-  pinMode(pressure, INPUT);
   pinMode(alarm, OUTPUT);
-
+  pinMode(modeselector, INPUT);
 
 
   lcd.init();
@@ -170,6 +172,11 @@ void loop() {
 
 void checkVariables() {
 
+
+  modeselectorState  = digitalRead(modeselector);
+
+
+
   // Read the value of 3 parameters
   valuepot1 = analogRead(pot1); // Volumen - Presion
   valuepot2 = analogRead(pot2); // Ciclos
@@ -185,12 +192,24 @@ void checkVariables() {
   int actualCiclesPrint = (int) actualCicles;
   int actualSpeedPrint = (int) actualSpeed;
 
-  impresion = ("Vol: " + String(actualVolumePrint) + " | Cicl: "  +  String(actualCiclesPrint) + " | "); 
+  if (modeselectorState == 0) { //Si esta selecionado el modo presion
+  impresion = ("  P " + String(actualVolumePrint) + " FR "  +  String(actualCiclesPrint));
+  } else {
+    impresion = (" VT " + String(actualVolumePrint) + " FR "  +  String(actualCiclesPrint));
+  }
+
   Serial.println("---------------------");
   Serial.println (impresion);
   lcd.print(impresion);
   lcd.setCursor (0, 1);
-  impresion = ("Vel: "+ String(actualSpeedPrint) + " Pres: ");
+
+  if (modeselectorState == 0) {//Si esta selecionado el modo presion
+  impresion = ("I:E " + String(actualSpeedPrint) + " VT  ");
+  } else {
+    impresion = ("I:E " + String(actualSpeedPrint) + " P  ");
+  }
+
+
   Serial.println (impresion);
   lcd.print(impresion);
   lcd.display();
