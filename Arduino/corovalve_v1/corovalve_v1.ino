@@ -32,8 +32,8 @@ int volumeMin = 50; //Initial air volume per cicle
 int volumeMax = 500;
 float actualVolume = 0;
 
-int ciclesMin = 10; // MIN Cicles per minute
-int ciclesMax = 70; // MAX Cicles per minute
+int ciclesMin = 4; // MIN Cicles per minute
+int ciclesMax = 30; // MAX Cicles per minute
 float actualCicles = 0;
 
 float speedMin = 5000; // MIN motor Speed (More is slower)
@@ -60,6 +60,7 @@ int state = 0;
 int stepCount = 0; // number of steps the motor has taken
 int startState = 0; //Define the state, 1: start 0: stop to prepare the variables before starting
 unsigned long currentMillis = 0;    // stores the value of millis() in each iteration of loop()
+unsigned long lastMillis = 0;    // stores the value of millis() in each iteration of loop()
 float delaynow = 0;
 int pressureValue = 0; // Keep the pressure value
 int endstopperValue = 0;
@@ -68,20 +69,19 @@ float loops = 10;
 int maxup = 30; //Max up the Z
 
 void setup() {
+  Serial.begin(9600);
   pinMode(stepPin, OUTPUT);
   pinMode(dirPin, OUTPUT);
-
-  Serial.begin(9600);
-
   pinMode(endstopper, INPUT);
   pinMode(alarm, OUTPUT);
   pinMode(modeselector, INPUT);
-
 
   lcd.init();
   lcd.backlight();
   lcd.clear();
 
+  currentMillis = millis();
+  lastMillis = millis();
 }
 
 void loop() {
@@ -97,11 +97,22 @@ void loop() {
       ////  WAIT FOR NEXT CYCLE  ////
       //delaynow = (60000/cicles)-(cicles*2*(speedServo*volume)); // REPASAR
 
-      delaynow = (60000 / actualCicles); // Basico para ir tirando
-      Serial.println("Waiting");
-      delay(delaynow);
-      state = 1;
-      break;
+      if ( lastMillis - currentMillis >= (60000 / actualCicles)) {
+        lastMillis = currentMillis;
+        state = 1;
+      } else {
+        Serial.println("Waiting");
+        checkPeep();
+        if (valuepeep >= TresholdPeep) {
+          state = 3;
+          break;
+        }
+        state = 0;
+        break;
+      }
+
+
+
 
     case 1: // Motor down
       digitalWrite(dirPin, HIGH); // Set the spinning direction clockwise:
@@ -118,7 +129,7 @@ void loop() {
 
     case 2: // Motor up+
       //for (int i = 0; (i < actualVolume) && (endstopperValue == LOW)); i++) {
-      
+
       Serial.print("State2");
       digitalWrite(dirPin, LOW);
       state = 0; // Next state
@@ -146,7 +157,7 @@ void loop() {
     case 3: // PEEP
       Serial.print("PEEP MODE");
       digitalWrite(dirPin, HIGH); // Set the spinning direction clockwise:
-      
+
       for (int i = 0; i < ((stepsPerRevolution)*peepPresure) ; i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
         // Move the motor
         digitalWrite(stepPin, HIGH);
@@ -173,10 +184,15 @@ void checkVariables() {
   valuepot2 = analogRead(pot2); // Ciclos
   valuepot3 = analogRead(pot3); // Velocidad
   endstopperValue = digitalRead(endstopper);
+  
 
-  actualVolume = map(valuepot1, 20, 1000, volumeMin, volumeMax);
-  actualCicles = map(valuepot2, 20, 1000, ciclesMin, ciclesMax);
-  actualSpeed = map(valuepot3, 20, 1000, speedMin, speedMax);
+
+  actualVolume = map(valuepot1, 0, 1024, volumeMin, volumeMax);
+  actualCicles = map(valuepot2, 0, 1024, ciclesMin, ciclesMax);
+  actualSpeed = map(valuepot3, 0, 1024, speedMin, speedMax);
+
+Serial.print("Valor:");
+Serial.println(actualCicles);
 
   lcd.setCursor(0, 0);
   int actualVolumePrint = (int) actualVolume;
@@ -189,7 +205,7 @@ void checkVariables() {
     impresion = (" VT " + String(actualVolumePrint) + " FR "  +  String(actualCiclesPrint));
   }
 
-  Serial.print(impresion);
+  //Serial.print(impresion);
   lcd.print(impresion);
   lcd.setCursor (0, 1);
 
@@ -199,19 +215,19 @@ void checkVariables() {
     impresion = ("I:E " + String(actualSpeedPrint) + " P  ");
   }
 
-  Serial.print(impresion); 
+  //Serial.print(impresion);
   lcd.print(impresion);
   lcd.display();
 
-  Serial.print("  Endstopper: ");
-  Serial.print(endstopperValue);
+ // Serial.print("  Endstopper: ");
+ // Serial.print(endstopperValue);
 
 }
 
 void checkPeep() {
   valuepeep = analogRead(peep);
-  Serial.print(" Peep: ");
-  Serial.println(valuepeep);
+  //Serial.print(" Peep: ");
+ // Serial.println(valuepeep);
 
 }
 //actualpeep = map(valuepeep, 0, 1000, peepAdjustMin, peepAdjustMax);
