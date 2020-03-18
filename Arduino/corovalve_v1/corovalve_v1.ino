@@ -185,22 +185,21 @@ void checkVariables() {
   int actualCiclesPrint = (int) actualCicles;
   int actualSpeedPrint = (int) actualSpeed;
 
-  impresion = (String(actualVolumePrint) + " | " +  String(actualCiclesPrint) + " | " +   String(actualSpeedPrint)); //Estamos en este punto
-  Serial.print (impresion);
+  impresion = ("Vol: " + String(actualVolumePrint) + " | Cicl: "  +  String(actualCiclesPrint) + " | "); 
+  Serial.println("---------------------");
+  Serial.println (impresion);
   lcd.print(impresion);
   lcd.setCursor (0, 1);
-  impresion = ("Vol | Cicl | Vel ");
+  impresion = ("Vel: "+ String(actualSpeedPrint) + " Pres: ");
+  Serial.println (impresion);
   lcd.print(impresion);
   lcd.display();
 
-  Serial.print("Volume: ");
-  Serial.print(actualVolume);
-  Serial.print(" |  Cicles: ");
-  Serial.print(actualCicles);
-  Serial.print(" |  Speed: ");
-  Serial.print(actualSpeed);
-  Serial.print(" |  Endstopper: ");
+  Serial.print("Endstopper: ");
   Serial.println(endstopperValue);
+  Serial.println("---------------------");
+  Serial.println(" ");
+  Serial.println(" ");
 }
 
 void checkPeep() {
