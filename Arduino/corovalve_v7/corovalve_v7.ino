@@ -10,16 +10,17 @@ const int endstopper = 5; // Pin del endstopper
 const int onoff = 4; // Interruptor ON / OFF
 const int modeselector = 6; // Pin del selector de modo Volumen / Presion
 int modeselectorState = 0; // Estado del modo*
-const float SensorOffset = 41.0;
+const float SensorOffset = 41.0; // Valor para ajustar el sensor de presión a cmH2o
 
 //ANALOGS//
-const int pot1 = A0;
-const int pot2 = A1;
-const int pot3 = A2;
-int peep = A3;
+const int pot1 = A0;  // Entrada potenciometro 1
+const int pot2 = A1; // Entrada potenciometro 1
+const int pot3 = A2; // Entrada potenciometro 1
+int peep = A3; // Entrada del sensor de presion
 //A4 - LCD Screen SDA
 //A5 - LCD Screen SCL
 
+// Variables para guardar los valores:
 int valuepot1 = 0; // Tidal Volume (Liters)
 int valuepot2 = 0; // Breaths per minute
 int valuepot3 = 0; // Speed
@@ -29,14 +30,16 @@ int valuepot3 = 0; // Speed
 #define stepsPerRevolution 1  // change this to fit the number of steps per revolution
 
 int distanciaPresionMax = 1000; // Distancia maxima en la ida por presion
-int TresholdPeep = 20; // Treshold to activate peep
+int ciclosMoverMotor = 5; // Los ciclos que hace cada vez que se mueve el motor
 
-//             Valores de Retorno
-int maxup = 100; //Max up the Z
+//  Valores de Retorno
+int maxup = 100; //Maxima distancia del motor al volver
 int velRetorno = 800; // Velocidad de retorno del motor (menos es mas rapido)
 
-int peep_min = 5; // Value of pressure min to PEEP procedure
-int presure_max = 600; // Security value to stop pressing
+
+// Ajustes de presion maxima y minima del sensor de presion (Thresholds)
+int threshold_presure_min = 20; // Value of pressure min to PEEP procedure
+int threshold_presure_max = 600; // Security value to stop pressing
 float peepAdjustMin = 0;
 float peepAdjustMax = 100;
 
@@ -108,8 +111,12 @@ void setup() {
 
 void loop() {
 
-  checkVariables();
-  checkPeep();
+  // Comprueba las variables y la presion (checkPesure)
+  // NOTA: He puesto el check variables dentro de los modos porque hay modos que no necesitan analizar las variables y asi van mas rapidos
+  //checkVariables();
+  //checkPesure();
+
+  // Mira si se tiene que activar la alarma
   if (stateAlarm == HIGH) {
     digitalWrite(alarm, HIGH);
     delay(100);
@@ -117,12 +124,14 @@ void loop() {
     stateAlarm = 0;
   }
 
+  // Coge los milisegundos actuales para hacer los calculos de cuanto tarda un ciclo
   currentMillis = millis();   // capture the latest value of millis()
   Serial.print("Estado: ");
   Serial.println(state);
 
+  // Si el switch ON/OFF esta encendido se va al estado 5 y se queda en bucle, si esta apagado inicia el programa
   if (onoffState == HIGH) {
-    if (state == 5) {
+    if (state == 5) { // Esto esta asi para que no se ponga state=0 en cada iteracion
       state = 0; // Start
       Serial.println("Start");
     }
@@ -132,30 +141,29 @@ void loop() {
   }
 
   switch (state) {
-    case 0: // Standby
+    case 0: // STANDBY - Se espera a que toque hacer otro ciclo
       ////  WAIT FOR NEXT CYCLE  ////
-      //delaynow = (60000/cicles)-(cicles*2*(speedServo*volume)); // REPASAR
       //Serial.println(currentMillis - lastMillis);
 
-      if ( currentMillis - lastMillis >= (60000 / actualCicles)) {
+      checkVariables(); // Revisamos las variables dentro de cada estado, ya que hay estados que no necesitan las variables y asi reducimos el delay
+
+      if ( currentMillis - lastMillis >= (60000 / actualCicles)) { // Calcula si ha pasado el tiempo necesario - 60000/actualCicles te dice cuanto tiene que durar un ciclo
         lastMillis = millis();
-        if (modeselectorState == HIGH) {//Si esta selecionado el modo presion...
+        if (modeselectorState == HIGH) {//Mira en que modo esta el selector de modo y te lleva a uno o otro
           state = 1; // Modo volumen
-          Serial.println("Anar al modo VOlumen");
+          Serial.println("Ir al modo VOlumen");
         } else {
           state = 4; // Modo presion
-          Serial.println("Anar al modo presion");
+          Serial.println("Ir al modo presion");
         }
 
-      } else {
+      } else { // Si no se ha llegado a los milisegundos para empezar el ciclo mira si se han pasado los valores de presion max o min, si se han pasado se activa la alarma
         //Serial.println("Waiting");
-        checkVariables();
-        checkPeep();
-        if (valuepeep <= TresholdPeep) {
+        if (valuepeep <= threshold_presure_min) {
           stateAlarm = 1;
           state = 3;
           break;
-        } else if (valuepeep >= presure_max) {
+        } else if (valuepeep >= threshold_presure_max) {
           stateAlarm = 1;
           state = 2;
           break;
@@ -166,20 +174,25 @@ void loop() {
       break;
 
     case 1: // MODO VOLUMEN
+
+      checkVariables();
+
       Serial.println("Modo 1");
       ieMillisStart = millis();
       digitalWrite(dirPin, HIGH); // Set the spinning direction clockwise:
       for (int i = 0; i < ((stepsPerRevolution)*actualVolume) ; i++) {
-        checkPeep();
-        if (valuepeep >= presure_max) {
+        checkPesure();
+        if (valuepeep >= threshold_presure_max) {
           state = 2;
           break;
         }
-        // Move the motor
-        digitalWrite(stepPin, HIGH);
-        delayMicroseconds(actualSpeed);
-        digitalWrite(stepPin, LOW);
-        delayMicroseconds(actualSpeed);
+        for (int i = 0; i < ciclosMoverMotor; i++) {
+          // Move the motor
+          digitalWrite(stepPin, HIGH);
+          delayMicroseconds(actualSpeed);
+          digitalWrite(stepPin, LOW);
+          delayMicroseconds(actualSpeed);
+        }
       }
       ieMillisEnd = millis();
       state = 2;
@@ -188,41 +201,48 @@ void loop() {
 
     case 2: // Motor up+
       //for (int i = 0; (i < actualVolume) && (endstopperValue == LOW)); i++) {
+
       checkVariables();
+
       Serial.println("State 2");
       digitalWrite(dirPin, LOW);
 
-      for (int j = 0; j < maxup; j++) { //Numero de veces que revisas las variables mientras corre el motor
-        checkPeep();
-        Serial.println("Punt 1");
-        if (valuepeep <= TresholdPeep) {
-          Serial.println("Punt 2");
+      for (int j = 0; j < maxup; j++) { //Numero de veces que revisas las variables mientras corre el motor hasta MAXUP que es el valor maximo que puede recorrer
+        checkPesure();
+
+        // Mira si el valor de presion es inferior al Minimo
+        if (valuepeep <= threshold_presure_min) {
           state = 3;
           break;
         }
+
+        // Mira si se ha apretado el endstopper
         endstopperValue = digitalRead(endstopper);
-        if (endstopperValue == 0) { // Para si toca el stopper
-          Serial.println("Punt 3");
+        if (endstopperValue == 0) {
           state = 0;
           break;
         }
-        for (int i = 0; i < 5; i++) {
 
+        // Sino sigue corriendo
+        for (int i = 0; i < ciclosMoverMotor; i++) {
           digitalWrite(stepPin, HIGH);
           delayMicroseconds(velRetorno);
           digitalWrite(stepPin, LOW);
           delayMicroseconds(velRetorno);
         }
+
       }
-      Serial.println("Punt 5");
+
       state = 0;
       break;
 
     case 3: // PEEP
       Serial.print("PEEP MODE");
+
       digitalWrite(dirPin, HIGH); // Set the spinning direction clockwise:
 
-      for (int i = 0; i < ((stepsPerRevolution) * 50) ; i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
+      // Aprieta para dar presión
+      for (int i = 0; i < ((stepsPerRevolution) * 50) ; i++) {
         // Move the motor
         digitalWrite(stepPin, HIGH);
         delayMicroseconds(actualSpeed);
@@ -232,31 +252,36 @@ void loop() {
       state = 2;
       break;
 
-    case 4: // MODO PRESION
+    case 4: // MODO PRESION - De momento no
 
+      /*
+            digitalWrite(dirPin, HIGH); // Set the spinning direction clockwise:
+            Serial.print("State 4");
+            for (int i = 0; i < (distanciaPresionMax) ; i++) {
+              checkPesure();
+              if (valuepeep >= actualPresure) {
+                state = 2;
+                break;
+              }
+              for (int i = 0; i < ((stepsPerRevolution)*peepPresure) ; i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
+                // Move the motor
+                digitalWrite(stepPin, HIGH);
+                delayMicroseconds(actualSpeed);
+                digitalWrite(stepPin, LOW);
+                delayMicroseconds(actualSpeed);
+              }
+            }
 
-      digitalWrite(dirPin, HIGH); // Set the spinning direction clockwise:
-      Serial.print("State 4");
-      for (int i = 0; i < (distanciaPresionMax) ; i++) {
-        checkPeep();
-        if (valuepeep >= actualPresure) {
-          state = 2;
-          break;
-        }
-        for (int i = 0; i < ((stepsPerRevolution)*peepPresure) ; i++) { //Divides el Stepsperrevolution por la J que son las veces que quieres revisar las variables.
-          // Move the motor
-          digitalWrite(stepPin, HIGH);
-          delayMicroseconds(actualSpeed);
-          digitalWrite(stepPin, LOW);
-          delayMicroseconds(actualSpeed);
-        }
-      }
+            ieMillisEnd = millis();
+            state = 2;
 
-      ieMillisEnd = millis();
-      state = 2;
+      */
+
       break;
 
-    case 5:
+    case 5: // En este estado no hace nada, es la pausa
+      checkVariables();
+      checkPesure();
       delay(5);
       break;
   }
@@ -315,7 +340,7 @@ void checkVariables() {
 
 }
 
-void checkPeep() {
+void checkPesure() {
   valuepeep = analogRead(peep);
   //Serial.print(" Peep: ");
   // Serial.println(valuepeep);
