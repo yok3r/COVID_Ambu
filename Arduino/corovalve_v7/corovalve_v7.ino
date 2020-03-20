@@ -16,7 +16,7 @@ const float SensorOffset = 41.0; // Valor para ajustar el sensor de presión a c
 const int pot1 = A0;  // Entrada potenciometro 1
 const int pot2 = A1; // Entrada potenciometro 1
 const int pot3 = A2; // Entrada potenciometro 1
-int peep = A3; // Entrada del sensor de presion
+int peep = A3; // Entrada del sensor de presions
 //A4 - LCD Screen SDA
 //A5 - LCD Screen SCL
 
