@@ -309,7 +309,7 @@ void checkVariables() {
   actualPresure = map(valuepot1, 0, 1024, presureMin, presureMax);
 
   actualCicles = map(valuepot2, 0, 1024, ciclesMin, ciclesMax);
-  actualSpeed = map(valuepot3, 0, 1024, speedMin, speedMax);
+  actualSpeed = map(valuepot3, 0, 1024, speedMax, speedMin);
 
 
   // Primera linea de la pantalla LCD
