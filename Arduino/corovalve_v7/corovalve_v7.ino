@@ -292,8 +292,10 @@ void checkVariables() {
   modeselectorState  = digitalRead(modeselector);
   onoffState  = digitalRead(onoff);
 
-  //Serial.print(" Onoff: ");
-  //Serial.println(onoffState);
+  // Calculamos el ratio de los ciclos
+  float ieMillisRatio = (60000 / actualCicles) / (ieMillisEnd - ieMillisStart);
+  //                     minutos / ciclos       inicio del modo    final del modo
+
 
   // Read the value of 3 parameters
   valuepot1 = analogRead(pot1); // Volumen - Presion
@@ -301,18 +303,17 @@ void checkVariables() {
   valuepot3 = analogRead(pot3); // Velocidad
   endstopperValue = digitalRead(endstopper);
 
+
+  // Mapeamos los valores de los potenciometros a los ajustes min y max de cada uno
   actualVolume = map(valuepot1, 0, 1024, volumeMin, volumeMax);
   actualPresure = map(valuepot1, 0, 1024, presureMin, presureMax);
 
   actualCicles = map(valuepot2, 0, 1024, ciclesMin, ciclesMax);
   actualSpeed = map(valuepot3, 0, 1024, speedMin, speedMax);
 
+
+  // Primera linea de la pantalla LCD
   lcd.setCursor(0, 0);
-
-  float ieMillisRatio = (60000 / actualCicles) / (ieMillisEnd - ieMillisStart);
-
-  //Serial.print("IE Ratio:");
-  //Serial.println(ieMillisRatio);
 
   if (modeselectorState == HIGH) { //Si esta selecionado el modo presion
     impresion = ("VT " + String((int)actualVolume) + "mL "  +  String((int) actualCicles) + "/min   ");
@@ -324,7 +325,6 @@ void checkVariables() {
   lcd.print(impresion);
   lcd.setCursor (0, 1);
 
-
   if (modeselectorState == HIGH) {//Si esta selecionado el modo presion
     impresion = ("1:" + String(ieMillisRatio) + " " + String((int)actualpeep) + "cmH2o  ");
   } else {
@@ -335,8 +335,8 @@ void checkVariables() {
   lcd.print(impresion);
   lcd.display();
 
-  // Serial.print("  Endstopper: ");
-  // Serial.print(endstopperValue);
+
+
 
 }
 
